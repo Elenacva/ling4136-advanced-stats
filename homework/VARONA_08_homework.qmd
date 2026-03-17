@@ -1,0 +1,292 @@
+---
+title: "session08 - homework"
+format: html
+editor: visual
+date: 2025-07-17
+author: Timo Roettger
+execute:
+  error: false
+  warning: false
+  message: false
+  cache: true
+bibliography: ../resources/bibliography.bib
+---
+
+# Preamble: Loading packages and configuration
+
+```{r}
+#| label: data_and_libraries
+#| echo: false
+
+# just run this code chunk
+# function to ignoring the setting of the relative path below when knitting
+run_if_not_knitting <- function(expr) {
+  if (!isTRUE(getOption("knitr.in.progress"))) {
+    eval(expr)
+  }
+}
+
+install.packages("rlang")
+
+# nifty code using the pacman package
+# it checks if the packages specified below are installed, if not, they will be installed, if yes, they will be loaded
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(rstudioapi, tidyverse, tidybayes, brms, 
+               bayesplot, bayestestR, modelr)
+
+# set the current working directory to the one where this file is
+run_if_not_knitting(current_working_dir <- dirname(rstudioapi::getActiveDocumentContext()$path))
+run_if_not_knitting(setwd(current_working_dir))
+
+# options to increase efficiency of brms models (optional)
+#options(brms.backend = "cmdstanr")
+options(mc.cores = parallel::detectCores())
+
+```
+
+# Exercise
+
+We will be re-analyzing the data from @winter2013making.
+
+```{preprocessing_sim}
+#| label: preprocessing_sim
+
+# Load our datasets
+sim <- read_csv("../data/linguistic_similarity.csv") |> 
+  mutate(Sem = as.factor(Sem),
+         Phon = as.factor(Phon))
+sim
+
+```
+
+We will now retrace the original article's complete analysis. In their original analysis, they were interested in whether (a) semantic similarity between cities, (b) phonological similarity between cities, and (c) their interaction affects how close/far apart participants draw the cities.
+
+## (a) Specify Priors
+
+Specify the model formula and appropriate weakly informative priors for all relevant predictors. Contrast-code the predictors.
+
+```{model_formula_sim}
+#| label: model_formula_sim
+
+#sum coding the predictors
+contrasts(sim$Phon) <- contr.sum(2)
+contrasts(sim$Sem)  <- contr.sum(2)  
+
+# formulating this for the priors
+sim_mdl <- bf(Distance ~ Phon * Sem)
+
+library(dplyr)
+
+#Just looking at what's going on as a general vibe
+sim |>
+  group_by(Phon, Sem) |>
+  summarize(
+    M   = mean(Distance, na.rm = TRUE),
+    SD  = sd(Distance, na.rm = TRUE),
+    min = min(Distance, na.rm = TRUE),
+    max = max(Distance, na.rm = TRUE),
+    .groups = "drop"  
+  )
+
+# prior vibing
+get_prior(sim_mdl, sim)
+
+# my weakly informative priors
+my_priors <- c(prior(normal(78, 40), class = "Intercept"),
+              prior(normal(0, 20), class = "b", coef = "Phon1"),
+              prior(normal(0, 20), class = "b", coef = "Sem1"),
+              prior(normal(0, 20), class = "b", coef = "Phon1:Sem1"),
+              prior(normal(0, 34), class = "sigma"))
+
+```
+
+## (b) Run the appropriate model for the research question
+
+```{model_sim}
+#| label: model_sim
+
+model_sim <- brm(Distance ~ Phon * Sem,
+            family = gaussian(),
+            prior = my_priors,
+            data = sim,
+            chains = 4,
+            cores = 4,
+            iter = 2000,
+            warmup = 1000,
+            thin = 1,
+            seed = 66)
+
+```
+
+## (c) Posterior predictive check
+
+Check the overall model fit with posterior predictive checks. If the model does not fit the data well, fix the problem (check `06_homework_solutions.qmd` for inspiration).
+
+```{model_fit}
+#| label: model_fit
+
+pp_check(model_sim, ndraws = 100)
+
+#Well, my data do not really match well with the posterior samples
+# Fixing it based on the solutions for homework 06
+
+sim_sq <- sim |> 
+  mutate(sqrt_dist = sqrt(Distance))
+
+# new priors
+new_priors <- c(prior(normal(9, 3), class = "Intercept"),
+              prior(normal(0, 3), class = "b", coef = "Phon1"),
+              prior(normal(0, 3), class = "b", coef = "Sem1"),
+              prior(normal(0, 3), class = "b", coef = "Phon1:Sem1"),
+              prior(normal(0, 4), class = "sigma"))
+
+# new model
+model_sqrt <- brm(sqrt_dist ~ Phon * Sem,
+            family = gaussian(),
+            prior = new_priors,
+            data = sim_sq,
+            chains = 4,
+            cores = 4,
+            iter = 2000,
+            warmup = 1000,
+            thin = 1,
+            seed = 66)
+
+pp_check(model_sqrt, ndraws = 100)
+
+#slighly better on the tails, but feels like the peak is off still?
+
+
+```
+
+## (d) Assess sampling diagnostics
+
+Check that chains are reasonably mixed and that sampling yielded a sufficient number of effective sample size. If there are issues, address them accordingly.
+
+```{sampling_diagnostics}
+#| label: sampling_diagnostics
+
+mcmc_plot(model_sim, type = "trace")
+
+#Healthy caterpillars
+
+mcmc_plot(model_sqrt, type = "trace")
+
+#Caterpillars still looking healthy
+```
+
+## (e) Interpret the results
+
+Now interpret the model relative to the research question and describe uncertainty, visualize posteriors, calculate posterior probabilities of direction, and calculate Bayes Factors for evidence for and against the posterior coefficients being point zero.
+
+(Note: When you want to extract interaction terms like `b_Sem1:Phon1`, you have to put single quotation marks around them because R struggles with interpreting the colon)
+
+```{r}
+#| label: interpret_sim
+
+summary(model_sqrt)
+
+library(emmeans)
+
+#visualizing the posterior
+spread_draws(model_sqrt, b_Phon1, b_Sem1, `b_Phon1:Sem1`)
+
+gather_draws(model_sqrt, b_Phon1, b_Sem1,`b_Phon1:Sem1`) |>
+  ggplot(aes(x = .value)) +
+  geom_density(fill = "steelblue", alpha = 0.5) +
+  facet_wrap(~ .variable, scales = "free") +
+  labs(
+    x = "Posterior slope values",
+    y = "Density",
+    title = "Posterior distributions"
+  )
+
+# Important: the slopes shown in the graphs need to be multiplied by 2 in
+# the case of phon1 and sem1 and by 4 for the interaction phon1:sem1 due to the
+# treatment coding I used.
+
+
+# load ’devtools’ package to allow installation from GitHub 
+library(devtools) # install ’faintr’ package from GitHub 
+install_github(repo = "michael-franke/bayes_mixed_regression_tutorial", subdir = "faintr")
+library(faintr)
+
+get_posterior_beliefs_about_hypotheses(model_sqrt)
+
+# I tried to run this code above (from your paper), and it doesn't work 
+# whatsoever. It seems to have 
+# something to do with my version of R, but in order to get a newer version
+# of R, I need to get admin password, which I don't have so I have to go to
+# UiO IT help to fix it. That can't happen before this homework is due,
+# so I'm turning this in without this being completely done. But at least you
+# can see the code I would use if it worked
+
+# This worked to see the probability of direction, yay!
+p_direction(model_sqrt)
+
+# Trying to do bayes factor, won't work
+bayesfactor_parameters(model_sqrt,
+                      prior = new_priors,
+                      null = 0)
+# I can't get this code to work, been googling and still confused, sorry
+
+
+```
+
+## (g) Write up your entire analysis:
+
+We fit a Bayesian model of square distance as a function of the interaction
+between phonetic and semantic distance. The predictors were sum coded. 
+
+The square root estimate of the distance of overall all predictors was 8.47.
+Looking at the phon coefficient, the difference (in this square root model) 
+between phonetically different words and phonetically similar words is of -0.44
+(twice the coefficient due to the sum coding). So, it is
+plausible that participants place phonetically similar words closer in the map 
+than phonetically different words. The credible interval ranges between -0.90
+and 0.04, so 0 is still a plausible value. 
+Looking at the sem coefficient, the difference between semantically different
+and semantically similar words is 0.68. So, it is plausible that participants 
+place cities that are semantically different more close to each other than
+the cities that are semantically similar. The credible interval is 0.18-1.16, so
+no difference between the two would be very unlikely. Interestingly, the 
+direction of the effect goes opposite to what we would expect. 
+Finally, the interaction is -0.20 (the coefficient that the model gives, times 4
+due to the treatment coding I used). The Sem effect is likely to be
+0.20 units smaller when Phon is similar compared to when Phon is different
+(and viceversa). The credible interval ranges from -1.12 to 0.76 
+so a value of 0 is well within 
+that range and therefore could be possible. That credible
+interval includes negative and positive direction for the effect, so we cannot
+be sure whether the interaction really applies and on which direction.
+
+Looking at the probability of direction, 96.58% of the of the draws for phon
+are negative, so there is a good chance that phon similar has smaller
+differences (would be placed closer in the map) than phon different. 
+When it comes to sem, 99.72% of the draws are positive, so it seems quite 
+plausibe that sem similar would be placed further apart in the map than sem
+different.
+Finally, about 65% of the draws for the phonsem interaction are negative and 
+35% are positive. So, we cannot be confident whether the effect of one factor
+changes depending on the level of the other factor. There seems to be no clear
+evidence for an interaction.
+
+
+## OPTIONAL (h) compare your interpretation to the original findings
+
+I'm not going to do a very long write up of this because I don't have time,
+but I was very curious so I did check the original findings in the stats book.
+It seems that I got the opposite effect when it comes to the semantic effect,
+as I got that semantically different words are placed closer to each other, 
+while Winter 2013 got that they are placed further from each other. 
+I got the same as Winter 2013 for the phonetic effect, and I think I got the
+same for the interaction. 
+As stated, I didn't have time to think about this much,
+but I was curious so I did a quick check that is maybe wrongly interpreted by me.
+
+# References
+
+<!-- References will auto-populate in the refs div below -->
+
+::: {#refs}
+:::
