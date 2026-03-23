@@ -97,9 +97,18 @@ Now imagine researchers want to use this data set to *test* the following hypoth
 
 ## A: Preregister your analysis
 
-Take the hypothesis and what you know about the data set and its structure to predict a very specific relationship that you can test. You are allowed to look at the dataset, but do not look at concrete relationships that might be a manifestation of the hypothesis.
+Take the hypothesis and what you know about the data set and its structure to 
+predict a very specific relationship that you can test. You are allowed to look 
+at the dataset, but do not look at concrete relationships that might be a 
+manifestation of the hypothesis.
 
-With iconicity research in mind (e.g. bigger things = longer words) and Pokemon knowledge (later stage of evolution = bigger and stronger), my analysis will focus on whether Pokemon names of later evolutions have longer words than Pokemon in early stages of evolution. I will only look at the official names since those show the original plan of the creators. I will remove NAs from the evolution column in my analysis so that I can look at the changes in evolution from level 1 to 2.
+With iconicity research in mind (e.g. bigger things = longer words) and Pokemon 
+knowledge (later stage of evolution = bigger and stronger), my analysis will 
+focus on whether Pokemon names of later evolutions have longer words than 
+Pokemon in early stages of evolution. I will only look at the official names 
+since those show the original plan of the creators. I will remove NAs from 
+the evolution column in my analysis so that I can look at the changes in 
+evolution from level 1 to 2.
 
 ## B: Run your preregistered analysis
 
@@ -145,13 +154,25 @@ p_direction(poke_agg)
 
 ```
 
-My preregistered analysis showed that the hypothesis did not find support in the data. Pokemon's official name length does not reflect the evolution stage. I found that it is plausible that when the evolution stage of the pokemon goes from 1 to 2, the name would be 0.90 letters shorter, with a 95% credible interval of 1.12 letters shorter and 0.68 letters shorter. It is 100% sure that the direction of the effect is negative, that is, later evolution being smaller in name length.
+My preregistered analysis showed that the hypothesis did not find support 
+in the data. Pokemon's official name length does not reflect the evolution stage. 
+I found that it is plausible that when the evolution stage of the pokemon goes 
+from 1 to 2, the name would be 0.90 letters shorter, with a 95% credible 
+interval of 1.12 letters shorter and 0.68 letters shorter. It is 100% sure 
+that the direction of the effect is negative, that is, later evolution being 
+smaller in name length.
 
 ## C: Show contradicting results
 
-Now explore the data and find two alternative way to test the research hypothesis that yield convincing results that go in opposite directions based of your findings in (A). Justify all your choices verbally after the fact.
+Now explore the data and find two alternative way to test the research 
+hypothesis that yield convincing results that go in opposite directions 
+based of your findings in (A). Justify all your choices verbally after the fact.
 
-If I use NAs and 2 instead of 1 and 2 I get one more result that rejects the hypothesis. The reasoning for treating NA as 1 is that the way they put NAs in the dataset was strange and they were treating Pokemon with 3 evolution steps (like Pichu, Pikachu and Raichu) as 1, NA and 2. I will use both official and elicited names.
+If I use NAs and 2 instead of 1 and 2 I get one more result that rejects the 
+hypothesis. The reasoning for treating NA as 1 is that the way they put NAs in 
+the dataset was strange and they were treating Pokemon with 3 evolution steps 
+(like Pichu, Pikachu and Raichu) as 1, NA and 2. I will use both official 
+and elicited names.
 
 ```{r, pokemon non-preregistered analysis}
 
@@ -196,9 +217,19 @@ p_direction(poke_new)
 
 ```
 
-By doing what I did in the treatment of the data, the change between lower and higher evolutions is very likely to be smaller (0.42), with a CI of -0.68 to -0.16, but is still in the direction that "disproves" the hypothesis, and the probability of direction for a negative effect is 100%.
+By doing what I did in the treatment of the data, the change between lower 
+and higher evolutions is very likely to be smaller (0.42), with a CI of -0.68 
+to -0.16, but is still in the direction that "disproves" the hypothesis, and 
+the probability of direction for a negative effect is 100%.
 
-I will now do an analysis that will show that the evolution stage is reflected in the name of the pokemon. Iconicity research has shown that /i/ is associated with smaller things, so, lower evolutions should have more /i/s than higher evolutions. I don't use NAs and keep my analysis looking at 1 and 2 in the Evolution. I only look at elicited names since that will give the intuitions that people have spontaneously, which may tap better into iconicity than official names, which potentially go through several considerations and decision rounds.
+I will now do an analysis that will show that the evolution stage is reflected 
+in the name of the pokemon. Iconicity research has shown that /i/ is associated 
+with smaller things, so, lower evolutions should have more /i/s than higher 
+evolutions. I don't use NAs and keep my analysis looking at 1 and 2 in the 
+Evolution. I only look at elicited names since that will give the intuitions 
+that people have spontaneously, which may tap better into iconicity than 
+official names, which potentially go through several considerations 
+and decision rounds.
 
 ```{r, pokemon non-preregistered analysis2}
 
@@ -240,17 +271,33 @@ p_direction(pok)
 
 ```
 
-The model shows that it is likely that going from evolution 1 to 2, elicited pokemon names will have 0.04 less /i/, with a credible interval of -0.14 and 0.06. So, 0 is still a possible number.
+The model shows that it is likely that going from evolution 1 to 2, elicited 
+pokemon names will have 0.04 less /i/, with a credible interval of -0.14 and 
+0.06. So, 0 is still a possible number.
 
-Looking at probability of direction, slightly over 78% of values are in the negative direction for the effect, so fewer /i/s the bigger a pokemon is. This means that the effect possibility is not very robust. There is still a good chance that the effect goes in the opposite direction.
+Looking at probability of direction, slightly over 78% of values are in the 
+negative direction for the effect, so fewer /i/s the bigger a pokemon is. 
+This means that the effect possibility is not very robust. There is still 
+a good chance that the effect goes in the opposite direction.
 
 ## D: Researcher degrees of freedom
 
-Note down all dimensions of researcher degrees of freedom that make the mapping of the hypothesis onto your data analysis vague. How many possible combinations can you think of?
+Note down all dimensions of researcher degrees of freedom that make the 
+mapping of the hypothesis onto your data analysis vague. How many possible 
+combinations can you think of?
 
-The hypothesis does not specify what it means by evolution stage, and it does not specify at all what is meant by "will be reflected". Reflected how? Bigger pokemon having longer names? More voiced obstruents? Less vowels? More back vowels? Less high vowels? There are many possible combinations. Also, it does not specify at all how we're supposed to deal with the NAs, or how the official name and the elicited name are to play a role in the analysis. Also, we don't really know how the names were elicited so it was hard to decide on what model could best capture things. Did each informant provide 1 elicitation, or how many did they provide?
+The hypothesis does not specify what it means by evolution stage, and it does 
+not specify at all what is meant by "will be reflected". Reflected how? 
+Bigger pokemon having longer names? More voiced obstruents? Less vowels? 
+More back vowels? Less high vowels? There are many possible combinations. 
+Also, it does not specify at all how we're supposed to deal with the NAs, 
+or how the official name and the elicited name are to play a role in the 
+analysis. Also, we don't really know how the names were elicited so it was 
+hard to decide on what model could best capture things. Did each informant 
+provide 1 elicitation, or how many did they provide?
 
-So, you can "easily p-hack" the results depending on which of all these paths you take.
+So, you can "easily p-hack" the results depending on 
+which of all these paths you take.
 
 # References
 
